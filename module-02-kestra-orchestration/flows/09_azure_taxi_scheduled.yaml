@@ -1,0 +1,61 @@
+id: 09_azure_taxi_scheduled
+namespace: zoomcamp
+description: |
+  Scheduled pipeline for NYC Taxi data using Azure. 
+  Use the 'Backfill' button in the UI to run historical data.
+
+inputs:
+  - id: taxi
+    type: SELECT
+    displayName: Select taxi type
+    values: [yellow, green]
+    defaults: yellow
+
+variables:
+  file: "{{inputs.taxi}}_tripdata_{{trigger.date | date('yyyy-MM')}}.csv"
+  azure_blob_name: "raw/{{inputs.taxi}}/{{trigger.date | date('yyyy')}}/{{trigger.date | date('MM')}}/{{vars.file}}"
+
+tasks:
+  - id: set_label
+    type: io.kestra.plugin.core.execution.Labels
+    labels:
+      file: "{{render(vars.file)}}"
+      taxi: "{{inputs.taxi}}"
+
+  - id: extract
+    type: io.kestra.plugin.scripts.shell.Commands
+    outputFiles:
+      - "*.csv"
+    taskRunner:
+      type: io.kestra.plugin.core.runner.Process
+    commands:
+      - wget -qO- https://github.com/DataTalksClub/nyc-tlc-data/releases/download/{{inputs.taxi}}/{{render(vars.file)}}.gz | gunzip > {{render(vars.file)}}
+
+  - id: upload_to_azure
+    type: io.kestra.plugin.azure.storage.blob.Upload
+    endpoint: "https://{{kv('AZURE_STORAGE_ACCOUNT')}}.blob.core.windows.net"
+    connectionString: "{{kv('AZURE_CONNECTION_STRING')}}"
+    container: "{{kv('AZURE_CONTAINER_NAME')}}"
+    from: "{{outputs.extract.outputFiles[render(vars.file)]}}"
+    name: "{{render(vars.azure_blob_name)}}"
+
+  - id: log_stats
+    type: io.kestra.plugin.core.log.Log
+    message: |
+      Processed File: {{render(vars.file)}}
+      Sent to Azure as: {{render(vars.azure_blob_name)}}
+
+  - id: purge_files
+    type: io.kestra.plugin.core.storage.PurgeCurrentExecutionFiles
+
+triggers:
+  - id: yellow_schedule
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "0 9 1 * *"
+    inputs:
+      taxi: yellow
+  - id: green_schedule
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "0 10 1 * *"
+    inputs:
+      taxi: green

@@ -1,0 +1,25 @@
+id: 07_azure_setup
+namespace: zoomcamp
+
+description: |
+  This flow verifies the Azure storage configuration. 
+  In Azure, we typically create the Container via the Portal, 
+  but this flow ensures Kestra can communicate with it.
+
+tasks:
+  - id: verify_container_access
+    type: io.kestra.plugin.azure.storage.blob.List
+    endpoint: "https://{{kv('AZURE_STORAGE_ACCOUNT')}}.blob.core.windows.net"
+    connectionString: "{{kv('AZURE_CONNECTION_STRING')}}"
+    container: "{{kv('AZURE_CONTAINER_NAME')}}"
+    prefix: "test/"
+
+  - id: log_success
+    type: io.kestra.plugin.core.log.Log
+    message: "Successfully connected to Azure Container: {{kv('AZURE_CONTAINER_NAME')}}"
+
+pluginDefaults:
+  - type: io.kestra.plugin.azure
+    values:
+      endpoint: "https://{{kv('AZURE_STORAGE_ACCOUNT')}}.blob.core.windows.net"
+      connectionString: "{{kv('AZURE_CONNECTION_STRING')}}"

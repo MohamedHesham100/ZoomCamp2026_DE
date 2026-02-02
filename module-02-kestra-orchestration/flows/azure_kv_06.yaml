@@ -1,0 +1,21 @@
+id: 06_azure_kv
+namespace: zoomcamp
+
+tasks:
+  - id: set_azure_account
+    type: io.kestra.plugin.core.kv.Set
+    key: AZURE_STORAGE_ACCOUNT
+    kvType: STRING
+    value: "your_account_name"
+
+  - id: set_azure_container
+    type: io.kestra.plugin.core.kv.Set
+    key: AZURE_CONTAINER_NAME
+    kvType: STRING
+    value: "taxi-data"
+
+  - id: set_azure_connection
+    type: io.kestra.plugin.core.kv.Set
+    key: AZURE_CONNECTION_STRING
+    kvType: STRING
+    value: "your_connection_string"
